@@ -1,4 +1,4 @@
-module ecommerce-golang
+module gocommerce
 
 go 1.21.1
 
