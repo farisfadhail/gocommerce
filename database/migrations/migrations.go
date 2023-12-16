@@ -1,15 +1,16 @@
 package migrations
 
 import (
-	"ecommerce-golang/database"
 	"fmt"
+	"gocommerce/database"
+	"gocommerce/models/entity"
 	"log"
 )
 
 func RunMigration() {
 	db := database.DatabaseInit()
 
-	err := db.AutoMigrate()
+	err := db.AutoMigrate(&entity.User{}, &entity.Category{}, &entity.Product{})
 
 	if err != nil {
 		log.Println(err)

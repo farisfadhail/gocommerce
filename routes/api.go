@@ -1,8 +1,8 @@
 package routes
 
 import (
-	"ecommerce-golang/config"
 	"github.com/gofiber/fiber/v2"
+	"gocommerce/config"
 )
 
 func RouteInit(app *fiber.App) {

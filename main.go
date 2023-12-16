@@ -1,8 +1,8 @@
 package main
 
 import (
-	"ecommerce-golang/routes"
 	"github.com/gofiber/fiber/v2"
+	"gocommerce/routes"
 	"log"
 )
 
