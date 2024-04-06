@@ -6,3 +6,10 @@ type ProductRequest struct {
 	Price       int64  `json:"price" validate:"required,number"`
 	Description string `json:"description" validate:"required"`
 }
+
+type ProductUpdateRequest struct {
+	CategoryId  int    `json:"category_id" form:"category_id" validate:"number"`
+	Name        string `json:"name"`
+	Price       int64  `json:"price" validate:"number"`
+	Description string `json:"description"`
+}

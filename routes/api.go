@@ -39,5 +39,7 @@ func RouteInit(app *fiber.App) {
 	product := api.Group("/product")
 	product.Get("/", handlers.GetAllProductsHandler).Name("product.index")
 	product.Post("/", utils.HandleMultipleFile, handlers.StoreProductHandler).Name("product.store")
-	product.Get("/:categorySlug", handlers.GetBySlugProductHandler).Name("product.show")
+	product.Get("/:productSlug", handlers.GetBySlugProductHandler).Name("product.show")
+	product.Put("/:productId", utils.HandleMultipleFile, handlers.UpdateProductHandler).Name("product.update")
+	product.Delete("/:productId", handlers.DeleteProductHandler).Name("product.destroy")
 }
