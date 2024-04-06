@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"github.com/gosimple/slug"
 	"log"
 	"mime/multipart"
 	"os"
@@ -17,15 +18,23 @@ const DefaultPathAsset = "./public/assets/"
 func HandleMultipleFile(ctx *fiber.Ctx) error {
 	form, err := ctx.MultipartForm()
 	if err != nil {
-		log.Println("Error Read Multipart Form Request, Error :", err)
+		log.Println("Error read multipart form request, Error :", err.Error())
 	}
 
 	files := form.File["product_images"]
+	productSlug := slug.Make(form.Value["name"][0])
 	var filenames []string
 	for idx, file := range files {
 		if file != nil {
+			err = CheckContentType(file, "image/jpg", "image/png", "image/jpeg")
+			if err != nil {
+				return ctx.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+					"message": err.Error(),
+				})
+			}
+
 			extFile := filepath.Ext(file.Filename)
-			filename := fmt.Sprintf("%d-%d%s", idx, time.Now().UnixMilli(), extFile)
+			filename := fmt.Sprintf("%d-%s-%d%s", idx, productSlug, time.Now().UnixMilli(), extFile)
 
 			err = ctx.SaveFile(file, DefaultPathAsset+filename)
 			if err != nil {
