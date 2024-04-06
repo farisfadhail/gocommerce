@@ -62,7 +62,7 @@ func UpdateUserHandler(ctx *fiber.Ctx) error {
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "BAD REQUEST",
+			"message": "Bad request.",
 		})
 	}
 
