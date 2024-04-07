@@ -3,7 +3,7 @@ package entity
 import "time"
 
 type User struct {
-	ID        int       `json:"id" gorm:"primaryKey"`
+	ID        uint      `json:"id" gorm:"primaryKey"`
 	FullName  string    `json:"full_name" gorm:"size:255;column:full_name"`
 	Username  string    `json:"username" gorm:"size:100;column:username;uniqueIndex"`
 	Email     string    `json:"email" gorm:"size:255;column:email"`

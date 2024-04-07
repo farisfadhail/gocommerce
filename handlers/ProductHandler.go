@@ -69,9 +69,9 @@ func StoreProductHandler(ctx *fiber.Ctx) error {
 		CategoryId:  productRequest.CategoryId,
 		Name:        productRequest.Name,
 		Slug:        slug.Make(productRequest.Name),
-		Price:       productRequest.Price,
+		Price:       uint64(productRequest.Price),
 		Description: productRequest.Description,
-		Quantity:    productRequest.Quantity,
+		Quantity:    uint64(productRequest.Quantity),
 	}
 
 	result = db.Debug().Create(&newProduct)
@@ -93,7 +93,7 @@ func StoreProductHandler(ctx *fiber.Ctx) error {
 
 	for _, filename := range filenames {
 		newImageGallery := entity.ImageGallery{
-			ProductId: newProduct.ID,
+			ProductId: uint(newProduct.ID),
 			FileName:  filename,
 		}
 
@@ -183,9 +183,9 @@ func UpdateProductHandler(ctx *fiber.Ctx) error {
 	product.CategoryId = productRequest.CategoryId
 	product.Name = productRequest.Name
 	product.Slug = slug.Make(productRequest.Name)
-	product.Price = productRequest.Price
+	product.Price = uint64(productRequest.Price)
 	product.Description = productRequest.Description
-	product.Quantity = productRequest.Quantity
+	product.Quantity = uint64(productRequest.Quantity)
 
 	result = db.Debug().Save(&product)
 
@@ -229,7 +229,7 @@ func UpdateProductHandler(ctx *fiber.Ctx) error {
 
 	for _, filename := range filenames {
 		newImageGallery := entity.ImageGallery{
-			ProductId: product.ID,
+			ProductId: uint(product.ID),
 			FileName:  filename,
 		}
 
