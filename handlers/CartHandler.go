@@ -67,6 +67,12 @@ func StoreCartHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
+	if uint64(cartRequest.Quantity) > product.Quantity {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Insufficient quantity for product.",
+		})
+	}
+
 	var cart entity.Cart
 
 	result = db.First(&cart, "product_id = ? AND user_id = ?", cartRequest.ProductId, cartRequest.UserId)

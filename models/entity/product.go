@@ -14,4 +14,5 @@ type Product struct {
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"column:updated_at;autoCreateTime;autoUpdateTime"`
 	ImageGalleries []ImageGallery `json:"-" gorm:"-"`
 	Cart           []Cart         `json:"-" gorm:"-"`
+	Order          []Order        `json:"-" gorm:"-"`
 }
