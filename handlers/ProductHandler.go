@@ -71,6 +71,7 @@ func StoreProductHandler(ctx *fiber.Ctx) error {
 		Slug:        slug.Make(productRequest.Name),
 		Price:       productRequest.Price,
 		Description: productRequest.Description,
+		Quantity:    productRequest.Quantity,
 	}
 
 	result = db.Debug().Create(&newProduct)
@@ -184,6 +185,7 @@ func UpdateProductHandler(ctx *fiber.Ctx) error {
 	product.Slug = slug.Make(productRequest.Name)
 	product.Price = productRequest.Price
 	product.Description = productRequest.Description
+	product.Quantity = productRequest.Quantity
 
 	result = db.Debug().Save(&product)
 
