@@ -133,6 +133,53 @@ func ShowByUserIdCartHandler(ctx *fiber.Ctx) error {
 	})
 }
 
+func ShowByIdCartHandler(ctx *fiber.Ctx) error {
+	cartId := ctx.Params("cartId")
+
+	var cart entity.Cart
+
+	result := db.Debug().First(&cart, cartId)
+
+	var responseData []interface{}
+
+	if result.Error != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": "Data not found.",
+		})
+	}
+
+	responseData = append(responseData, cart)
+
+	var product entity.Product
+
+	result = db.Debug().First(&product, cart.ProductId)
+
+	if result.Error != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": "Data not found.",
+		})
+	}
+
+	responseData = append(responseData, product)
+
+	var user entity.User
+
+	result = db.Debug().First(&user, cart.UserId)
+
+	if result.Error != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": "Data not found.",
+		})
+	}
+
+	responseData = append(responseData, user)
+
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Data with the requested ID has been retrieved.",
+		"data":    responseData,
+	})
+}
+
 func UpdateQuantityCartHandler(ctx *fiber.Ctx) error {
 	cartRequest := new(request.CartUpdateRequest)
 	err := ctx.BodyParser(cartRequest)
