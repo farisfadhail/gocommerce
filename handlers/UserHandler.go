@@ -186,7 +186,7 @@ func RegisterUserHandler(ctx *fiber.Ctx) error {
 
 	if err != nil {
 		return ctx.Status(400).JSON(fiber.Map{
-			"message": "BAD REQUEST",
+			"message": "Bad request.",
 			"error":   err.Error(),
 		})
 	}
@@ -202,7 +202,7 @@ func RegisterUserHandler(ctx *fiber.Ctx) error {
 
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "INTERNAL SERVER ERROR",
+			"message": "Internal server error.",
 		})
 	}
 
@@ -212,12 +212,12 @@ func RegisterUserHandler(ctx *fiber.Ctx) error {
 
 	if result.Error != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "FAILED TO STORE DATA",
+			"message": "Failed to register user.",
 		})
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "SUCCESS CREATE DATA",
+		"message": "New user has been added to the database.",
 		"data":    newUser,
 	})
 }
