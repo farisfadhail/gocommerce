@@ -10,10 +10,10 @@ import (
 func RunMigration() {
 	db := database.DatabaseInit()
 
-	db.Migrator().DropTable(&entity.User{}, &entity.Category{}, &entity.Product{}, &entity.ImageGallery{})
+	db.Migrator().DropTable(&entity.User{}, &entity.Category{}, &entity.Product{}, &entity.ImageGallery{}, &entity.Cart{})
 	fmt.Println("Database Freshed")
 
-	err := db.AutoMigrate(&entity.User{}, &entity.Category{}, &entity.Product{}, &entity.ImageGallery{})
+	err := db.AutoMigrate(&entity.User{}, &entity.Category{}, &entity.Product{}, &entity.ImageGallery{}, &entity.Cart{})
 
 	if err != nil {
 		log.Println(err)
