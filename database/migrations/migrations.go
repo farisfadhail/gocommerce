@@ -4,19 +4,18 @@ import (
 	"fmt"
 	"gocommerce/database"
 	"gocommerce/models/entity"
-	"log"
 )
 
 func RunMigration() {
 	db := database.DatabaseInit()
 
-	//db.Migrator().DropTable(&entity.User{}, &entity.Category{}, &entity.Product{}, &entity.ImageGallery{}, &entity.Cart{})
-	//fmt.Println("Database Freshed")
+	db.Migrator().DropTable(&entity.User{}, &entity.Category{}, &entity.Product{}, &entity.ImageGallery{}, &entity.Cart{}, &entity.UserOrder{}, &entity.Order{})
+	fmt.Println("Database Freshed")
 
-	err := db.AutoMigrate(&entity.User{}, &entity.Category{}, &entity.Product{}, &entity.ImageGallery{}, &entity.Cart{})
+	err := db.AutoMigrate(&entity.User{}, &entity.Category{}, &entity.Product{}, &entity.ImageGallery{}, &entity.Cart{}, &entity.UserOrder{}, &entity.Order{})
 
 	if err != nil {
-		log.Println(err)
+		panic(err.Error())
 	}
 
 	fmt.Println("Database Migrated")
