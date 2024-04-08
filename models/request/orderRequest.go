@@ -1,9 +1,10 @@
 package request
 
 type OrderRequest struct {
-	UserOrderId uint `json:"user_order_id" validate:"required,number"`
-	ProductId   uint `json:"product_id" validate:"required,number"`
-	Quantity    uint `json:"quantity" validate:"required,number"`
+	OrderNumber string `json:"order_number" validate:"required"`
+	UserOrderId uint   `json:"user_order_id" validate:"required,number"`
+	ProductId   uint   `json:"product_id" validate:"required,number"`
+	Quantity    uint   `json:"quantity" validate:"required,number"`
 }
 
 type OrderUpdateRequest struct {

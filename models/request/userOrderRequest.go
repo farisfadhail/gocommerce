@@ -2,6 +2,7 @@ package request
 
 type UserOrderRequest struct {
 	UserId     uint   `json:"user_id" validate:"required,number"`
+	Phone      uint64 `json:"phone" validate:"required,number"`
 	Address    string `json:"address" validate:"required"`
 	District   string `json:"district" validate:"required"`
 	City       string `json:"city" validate:"required"`
@@ -11,6 +12,7 @@ type UserOrderRequest struct {
 
 type UserOrderUpdateRequest struct {
 	UserId     uint   `json:"user_id" validate:"number"`
+	Phone      uint64 `json:"phone" validate:"number"`
 	Address    string `json:"address"`
 	District   string `json:"district"`
 	City       string `json:"city"`

@@ -51,4 +51,12 @@ func RouteInit(app *fiber.App) {
 	cart.Get("/:userId", handlers.ShowByUserIdCartHandler).Name("cart.showByUser")
 	cart.Put("/:cartId", handlers.UpdateQuantityCartHandler).Name("cart.updateQuantity")
 	cart.Delete("/delete", handlers.DeleteCartHandler).Name("cart.destroy")
+
+	// Order API
+	order := api.Group("/order")
+	order.Get("/", handlers.GetAllOrderHandler).Name("order.index")
+	order.Post("/create-order", handlers.CheckoutImmediatelyOrderHandler).Name("order.checkout-immediately")
+	order.Post("/create-order-by-cart", handlers.CheckoutByCartOrderHandler).Name("order.checkout-by-cart")
+	order.Put("/:orderNumber", handlers.UpdateOrderHandler).Name("order.update-status")
+
 }
