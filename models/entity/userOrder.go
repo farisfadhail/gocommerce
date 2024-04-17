@@ -5,7 +5,7 @@ import "time"
 type UserOrder struct {
 	ID         uint      `json:"id" gorm:"primaryKey"`
 	UserId     uint      `json:"user_id" gorm:"column:user_id"`
-	Phone      uint64    `json:"phone" gorm:"column:phone"`
+	Phone      string    `json:"phone" gorm:"column:phone"`
 	Address    string    `json:"address" gorm:"column:address"`
 	District   string    `json:"district" gorm:"column:district"`
 	City       string    `json:"city" gorm:"column:city"`

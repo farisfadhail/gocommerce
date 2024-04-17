@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	// Database Init
+	//Database Init
 	database.DatabaseInit()
 	migrations.RunMigration()
 

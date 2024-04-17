@@ -63,15 +63,23 @@ func StoreProductHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
-	var responseData []interface{}
+	//var responseData []interface{}
+	responseData := make(map[string]interface{})
 
 	newProduct := entity.Product{
 		CategoryId:  productRequest.CategoryId,
 		Name:        productRequest.Name,
 		Slug:        slug.Make(productRequest.Name),
-		Price:       uint64(productRequest.Price),
+		Price:       int64(productRequest.Price),
 		Description: productRequest.Description,
 		Quantity:    uint64(productRequest.Quantity),
+	}
+
+	filenames := ctx.Locals("filenames").([]string)
+	if len(filenames) == 0 {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Product images is required",
+		})
 	}
 
 	result = db.Debug().Create(&newProduct)
@@ -82,14 +90,9 @@ func StoreProductHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
-	responseData = append(responseData, newProduct)
+	responseData["product"] = newProduct
 
-	filenames := ctx.Locals("filenames").([]string)
-	if len(filenames) == 0 {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Product images is required",
-		})
-	}
+	var imageGallery []entity.ImageGallery
 
 	for _, filename := range filenames {
 		newImageGallery := entity.ImageGallery{
@@ -104,8 +107,10 @@ func StoreProductHandler(ctx *fiber.Ctx) error {
 			})
 		}
 
-		responseData = append(responseData, newImageGallery)
+		imageGallery = append(imageGallery, newImageGallery)
 	}
+
+	responseData["image_gallery"] = imageGallery
 
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "New entry has been added to the database.",
@@ -116,7 +121,7 @@ func StoreProductHandler(ctx *fiber.Ctx) error {
 func GetBySlugProductHandler(ctx *fiber.Ctx) error {
 	productSlug := ctx.Params("productSlug")
 
-	var responseData []interface{}
+	responseData := make(map[string]interface{})
 
 	var product entity.Product
 
@@ -127,7 +132,7 @@ func GetBySlugProductHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
-	responseData = append(responseData, product)
+	responseData["product"] = product
 
 	var imageGallery []entity.ImageGallery
 
@@ -139,9 +144,7 @@ func GetBySlugProductHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
-	for _, gallery := range imageGallery {
-		responseData = append(responseData, gallery)
-	}
+	responseData["image_gallery"] = imageGallery
 
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Data with the requested Slug has been retrieved.",
@@ -183,7 +186,7 @@ func UpdateProductHandler(ctx *fiber.Ctx) error {
 	product.CategoryId = productRequest.CategoryId
 	product.Name = productRequest.Name
 	product.Slug = slug.Make(productRequest.Name)
-	product.Price = uint64(productRequest.Price)
+	product.Price = int64(productRequest.Price)
 	product.Description = productRequest.Description
 	product.Quantity = uint64(productRequest.Quantity)
 
@@ -195,9 +198,9 @@ func UpdateProductHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
-	var responseData []interface{}
+	responseData := make(map[string]interface{})
 
-	responseData = append(responseData, product)
+	responseData["product"] = product
 
 	filenames := ctx.Locals("filenames").([]string)
 
@@ -227,6 +230,8 @@ func UpdateProductHandler(ctx *fiber.Ctx) error {
 		}
 	}
 
+	imageGallery = nil
+
 	for _, filename := range filenames {
 		newImageGallery := entity.ImageGallery{
 			ProductId: uint(product.ID),
@@ -240,8 +245,10 @@ func UpdateProductHandler(ctx *fiber.Ctx) error {
 			})
 		}
 
-		responseData = append(responseData, newImageGallery)
+		imageGallery = append(imageGallery, newImageGallery)
 	}
+
+	responseData["image_gallery"] = imageGallery
 
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Changes have been saved.",
