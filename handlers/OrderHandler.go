@@ -64,6 +64,12 @@ func CheckoutImmediatelyOrderHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
+	if uint64(orderRequest.Quantity) > product.Quantity {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Insufficient quantity for product.",
+		})
+	}
+
 	var user entity.User
 
 	result = db.First(&user, orderRequest.UserId)
@@ -94,8 +100,6 @@ func CheckoutImmediatelyOrderHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
-	responseData["user_order"] = newUserOrder
-
 	newOrder := entity.Order{
 		ID:          uuid.New(),
 		OrderNumber: "GCM" + newUserOrder.Phone + strconv.Itoa(int(time.Now().UnixMilli())),
@@ -114,7 +118,7 @@ func CheckoutImmediatelyOrderHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
-	chargeTransaction, err := CreateChargeTransaction(orderRequest.PaymentType, cast.ToString(newOrder.ID), int64(newOrder.Amount), []midtrans.ItemDetails{
+	chargeResponse, err := CreateChargeTransaction(orderRequest.PaymentType, cast.ToString(newOrder.ID), int64(newOrder.Amount), []midtrans.ItemDetails{
 		{
 			Name:  product.Name,
 			Price: product.Price,
@@ -148,11 +152,11 @@ func CheckoutImmediatelyOrderHandler(ctx *fiber.Ctx) error {
 
 	newPayment := entity.Payment{
 		ID:              uuid.New(),
-		TransactionID:   chargeTransaction.TransactionID,
+		TransactionID:   chargeResponse.TransactionID,
 		Amount:          newOrder.Amount,
-		PaymentType:     chargeTransaction.PaymentType,
-		Status:          chargeTransaction.TransactionStatus,
-		TransactionTime: chargeTransaction.TransactionTime,
+		PaymentType:     chargeResponse.PaymentType,
+		Status:          chargeResponse.TransactionStatus,
+		TransactionTime: chargeResponse.TransactionTime,
 	}
 
 	result = db.Debug().Create(&newPayment)
@@ -163,8 +167,18 @@ func CheckoutImmediatelyOrderHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
+	product.Quantity = product.Quantity - uint64(orderRequest.Quantity)
+	result = db.Debug().Save(&product)
+
+	if result.Error != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to update product data.",
+		})
+	}
+
+	responseData["user_order"] = newUserOrder
 	responseData["order"] = newOrder
-	responseData["payment"] = chargeTransaction
+	responseData["payment"] = chargeResponse
 
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Order has been created successfully. Finish payment to process your order.",
@@ -188,19 +202,48 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": "Bad request.",
-			"data":    err.Error(),
+			"error":   err.Error(),
 		})
 	}
 
+	var user entity.User
+
+	result := db.First(&user, orderRequest.UserId)
+
+	if result.Error != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": "Data user not found.",
+		})
+	}
+
+	responseData := make(map[string]interface{})
+
 	var cart []entity.Cart
 
-	result := db.Find(&cart, orderRequest.CartId)
+	result = db.Find(&cart, orderRequest.CartId)
 
 	if result.Error != nil {
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"message": "Cart not found",
 		})
 	}
+
+	// Check if product quantity is enough
+	for _, cartDetail := range cart {
+		var product entity.Product
+
+		db.First(&product, cartDetail.ProductId)
+
+		if product.Quantity < uint64(cartDetail.Quantity) {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "Insufficient quantity for product.",
+			})
+		}
+	}
+
+	var Amount int64
+
+	var items []midtrans.ItemDetails
 
 	newUserOrder := entity.UserOrder{
 		UserId:     orderRequest.UserId,
@@ -211,16 +254,6 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 		Province:   orderRequest.Province,
 		PostalCode: orderRequest.PostalCode,
 	}
-
-	result = db.Debug().Create(&newUserOrder)
-
-	if result.Error != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Failed to create user order data.",
-		})
-	}
-
-	var Amount int64
 
 	for _, cartDetail := range cart {
 		var product entity.Product
@@ -246,15 +279,60 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 		}
 
 		Amount = Amount + (product.Price * int64(cartDetail.Quantity))
+		items = append(items, midtrans.ItemDetails{
+			Name:  product.Name,
+			Price: product.Price,
+			Qty:   int32(cartDetail.Quantity),
+		})
+
+		product.Quantity = product.Quantity - uint64(cartDetail.Quantity)
+		db.Save(&product)
+	}
+
+	result = db.Debug().Create(&newUserOrder)
+
+	if result.Error != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to create user order data.",
+		})
+	}
+
+	orderId := "GCM" + strconv.Itoa(len(cart)) + newUserOrder.Phone + strconv.Itoa(int(time.Now().UnixMilli()))
+
+	chargeResponse, err := CreateChargeTransaction(orderRequest.PaymentType, orderId, Amount, items, midtrans.CustomerDetails{
+		FName: user.FullName,
+		Email: user.Email,
+		Phone: newUserOrder.Phone,
+		BillAddr: &midtrans.CustomerAddress{
+			FName:    user.FullName,
+			Phone:    newUserOrder.Phone,
+			Address:  newUserOrder.Address,
+			City:     newUserOrder.City,
+			Postcode: strconv.Itoa(newUserOrder.PostalCode),
+		},
+		ShipAddr: &midtrans.CustomerAddress{
+			FName:    user.FullName,
+			Phone:    newUserOrder.Phone,
+			Address:  newUserOrder.Address,
+			City:     newUserOrder.City,
+			Postcode: strconv.Itoa(newUserOrder.PostalCode),
+		},
+	},
+		nil, orderRequest.TokenID)
+
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to create charge transaction.",
+		})
 	}
 
 	newPayment := entity.Payment{
 		ID:              uuid.New(),
-		TransactionID:   "sdawasdawdawd",
+		TransactionID:   chargeResponse.TransactionID,
 		Amount:          Amount,
-		PaymentType:     "Bank Transfer",
+		PaymentType:     chargeResponse.PaymentType,
 		Status:          "Pending",
-		TransactionTime: "",
+		TransactionTime: chargeResponse.TransactionTime,
 	}
 
 	result = db.Debug().Create(&newPayment)
@@ -265,9 +343,13 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
+	responseData["user_order"] = newUserOrder
+	responseData["order"] = cart
+	responseData["payment"] = chargeResponse
+
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "New entry has been added to the database.",
-		"data":    cart,
+		"data":    responseData,
 	})
 }
 
