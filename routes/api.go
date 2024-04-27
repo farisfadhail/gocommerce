@@ -59,4 +59,7 @@ func RouteInit(app *fiber.App) {
 	order.Post("/create-order-by-cart", handlers.CheckoutByCartOrderHandler).Name("order.checkout-by-cart")
 	order.Put("/:orderNumber", handlers.UpdateOrderHandler).Name("order.update-status")
 
+	// Payment API
+	payment := api.Group("/payment")
+	payment.Post("/midtrans-notification", handlers.NotificationMidtrans).Name("payment.midtrans-notification")
 }

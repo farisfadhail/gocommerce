@@ -8,6 +8,7 @@ import (
 	"gocommerce/models/entity"
 	"gocommerce/models/request"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -145,6 +146,10 @@ func CheckoutImmediatelyOrderHandler(ctx *fiber.Ctx) error {
 	}, nil, orderRequest.TokenID)
 
 	if err != nil {
+		db.Delete(&entity.UserOrder{}, newUserOrder.ID)
+
+		db.Delete(&entity.Order{}, newOrder.ID)
+
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"message": "Failed to create charge transaction.",
 		})
@@ -255,6 +260,8 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 		PostalCode: orderRequest.PostalCode,
 	}
 
+	var orderIDS []string
+
 	for _, cartDetail := range cart {
 		var product entity.Product
 
@@ -278,6 +285,8 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 			})
 		}
 
+		orderIDS = append(orderIDS, cast.ToString(newOrder.ID))
+
 		Amount = Amount + (product.Price * int64(cartDetail.Quantity))
 		items = append(items, midtrans.ItemDetails{
 			Name:  product.Name,
@@ -297,9 +306,7 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
-	orderId := "GCM" + strconv.Itoa(len(cart)) + newUserOrder.Phone + strconv.Itoa(int(time.Now().UnixMilli()))
-
-	chargeResponse, err := CreateChargeTransaction(orderRequest.PaymentType, orderId, Amount, items, midtrans.CustomerDetails{
+	chargeResponse, err := CreateChargeTransaction(orderRequest.PaymentType, strings.Join(orderIDS, ", "), Amount, items, midtrans.CustomerDetails{
 		FName: user.FullName,
 		Email: user.Email,
 		Phone: newUserOrder.Phone,
@@ -321,6 +328,12 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 		nil, orderRequest.TokenID)
 
 	if err != nil {
+		db.Delete(&entity.UserOrder{}, newUserOrder.ID)
+
+		for _, orderID := range orderIDS {
+			db.Delete(&entity.Order{}, orderID)
+		}
+
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"message": "Failed to create charge transaction.",
 		})

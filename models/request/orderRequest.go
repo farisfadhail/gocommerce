@@ -36,3 +36,6 @@ type OrderByCartRequest struct {
 type OrderUpdateRequest struct {
 	Status string `json:"status" validate:"oneof=Paid Shipping Delivered Canceled"` // paid, shipping, delivered, canceled
 }
+
+type NotificationPayload struct {
+}
