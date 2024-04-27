@@ -195,8 +195,10 @@ func NotificationMidtrans(ctx *fiber.Ctx) error {
 	// 4. Check transaction to Midtrans with param orderId
 	transactionStatusResp, err := coreapi.CheckTransaction(orderIdRaw)
 	if err != nil {
-		//http.Error(ctx, err.Error(), http.StatusInternalServerError)
-		return "", fmt.Errorf("Error checking transaction status")
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Internal server error.",
+			"error":   err.Error(),
+		})
 	}
 
 	if transactionStatusResp != nil {
@@ -229,8 +231,13 @@ func NotificationMidtrans(ctx *fiber.Ctx) error {
 	result := db.Save(&order)
 
 	if result.Error != nil {
-		return "", fmt.Errorf("Failed to update order data.")
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to update order status.",
+			"error":   err.Error(),
+		})
 	}
 
-	return "Success post Midtrans notification.", nil
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Success update order status with midtrans webhook.",
+	})
 }
