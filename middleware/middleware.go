@@ -6,10 +6,10 @@ import (
 )
 
 func Authenticated(ctx *fiber.Ctx) error {
-	token := ctx.Get("x-jwt-token")
+	token := ctx.Get("x-auth-token")
 	if token == "" {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"message": "UNAUTHENTICATED",
+			"message": "Unauthenticated.",
 		})
 	}
 
@@ -17,7 +17,7 @@ func Authenticated(ctx *fiber.Ctx) error {
 
 	if err != nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"message": "UNAUTHENTICATED",
+			"message": "Unauthenticated.",
 		})
 	}
 
@@ -25,19 +25,19 @@ func Authenticated(ctx *fiber.Ctx) error {
 }
 
 func IsAdmin(ctx *fiber.Ctx) error {
-	token := ctx.Get("x-jwt-token")
+	token := ctx.Get("x-auth-token")
 	claims, err := utils.DecodeToken(token)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"message": "UNAUTHENTICATED",
+			"message": "Unauthenticated.",
 		})
 	}
 
 	role := claims["role"].(string)
 	if role != "admin" {
 		return ctx.Status(fiber.StatusForbidden).JSON(fiber.Map{
-			"message": "FORBIDDEN ACCESS",
+			"message": "Forbidden access.",
 		})
 	}
 

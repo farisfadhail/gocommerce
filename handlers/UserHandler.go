@@ -7,7 +7,6 @@ import (
 	"gocommerce/models/entity"
 	"gocommerce/models/request"
 	"gocommerce/models/response"
-	"gocommerce/utils"
 	"strings"
 )
 
@@ -145,6 +144,43 @@ func UpdateEmailUserHandler(ctx *fiber.Ctx) error {
 	})
 }
 
+func UpdateRoleUserHandler(ctx *fiber.Ctx) error {
+	userRequest := new(request.UserUpdateRoleRequest)
+	err := ctx.BodyParser(userRequest)
+
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Bad request.",
+		})
+	}
+
+	var user entity.User
+
+	userId := ctx.Params("userId")
+
+	result := db.First(&user, userId)
+	if result.Error != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": "Data not found",
+		})
+	}
+
+	user.Role = userRequest.Role
+
+	result = db.Debug().Save(&user)
+
+	if result.Error != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to update data.",
+		})
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Change role have been saved.",
+		"data":    user,
+	})
+}
+
 func DeleteUserHandler(ctx *fiber.Ctx) error {
 	userId := ctx.Params("userId")
 
@@ -168,56 +204,5 @@ func DeleteUserHandler(ctx *fiber.Ctx) error {
 
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Entry has been removed from the database.",
-	})
-}
-
-func RegisterUserHandler(ctx *fiber.Ctx) error {
-	user := new(request.UserRequest)
-	err := ctx.BodyParser(user)
-
-	if err != nil {
-		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "BAD REQUEST",
-			"error":   err.Error(),
-		})
-	}
-
-	err = validate.Struct(user)
-
-	if err != nil {
-		return ctx.Status(400).JSON(fiber.Map{
-			"message": "Bad request.",
-			"error":   err.Error(),
-		})
-	}
-
-	newUser := entity.User{
-		FullName: user.FullName,
-		Username: strings.ToLower(user.Username),
-		Email:    user.Email,
-		Role:     user.Role,
-	}
-
-	hashedPassword, err := utils.HashingPassword(user.Password)
-
-	if err != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Internal server error.",
-		})
-	}
-
-	newUser.Password = hashedPassword
-
-	result := db.Debug().Create(&newUser)
-
-	if result.Error != nil {
-		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Failed to register user.",
-		})
-	}
-
-	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "New user has been added to the database.",
-		"data":    newUser,
 	})
 }

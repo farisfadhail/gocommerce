@@ -1,13 +1,5 @@
 package request
 
-type UserRequest struct {
-	FullName string `json:"full_name" validate:"required"`
-	Username string `json:"username" validate:"required,alphanum"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=6"`
-	Role     string `json:"role" validate:"required,oneof=admin consumer"`
-}
-
 type UserUpdateRequest struct {
 	FullName string `json:"full_name"`
 	Username string `json:"username"`
@@ -15,4 +7,8 @@ type UserUpdateRequest struct {
 
 type UserUpdateEmailRequest struct {
 	Email string `json:"email" validate:"required"`
+}
+
+type UserUpdateRoleRequest struct {
+	Role string `json:"role" validate:"required,oneof=admin consumer"`
 }
