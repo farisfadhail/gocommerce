@@ -18,7 +18,7 @@ func RegisterHandler(ctx *fiber.Ctx) error {
 
 	if err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "BAD REQUEST",
+			"message": "Bad request.",
 			"error":   err.Error(),
 		})
 	}
@@ -26,7 +26,7 @@ func RegisterHandler(ctx *fiber.Ctx) error {
 	err = validate.Struct(user)
 
 	if err != nil {
-		return ctx.Status(400).JSON(fiber.Map{
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": "Bad request.",
 			"error":   err.Error(),
 		})
@@ -124,8 +124,9 @@ func LoginHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
-	return ctx.JSON(fiber.Map{
-		"token": token,
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Login success.",
+		"token":   token,
 	})
 }
 
