@@ -20,7 +20,7 @@ func GetAllUserHandler(ctx *fiber.Ctx) error {
 
 	if result.Error != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Failed to Get All Datas",
+			"message": "Failed to get all datas",
 		})
 	}
 

@@ -8,7 +8,7 @@ import (
 type Order struct {
 	ID          uuid.UUID `json:"id" gorm:"primaryKey"`
 	OrderNumber string    `json:"order_number" gorm:"column:order_number;uniqueIndex"`
-	UserOrderId uint      `json:"user_order_id" gorm:"column:user_order_id"`
+	UserOrderId uuid.UUID `json:"user_order_id" gorm:"column:user_order_id"`
 	ProductId   uint      `json:"product_id" gorm:"column:product_id"`
 	Quantity    uint      `json:"quantity" gorm:"column:quantity"`
 	Amount      int64     `json:"amount" gorm:"column:amount"`

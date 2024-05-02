@@ -7,13 +7,13 @@ type OrderRequest struct {
 	ProductId uint `json:"product_id" validate:"required,number"`
 	Quantity  uint `json:"quantity" validate:"required,number"`
 	// user order request
-	UserId     uint   `json:"user_id" validate:"required,number"`
-	Phone      string `json:"phone" validate:"required"`
-	Address    string `json:"address" validate:"required"`
-	District   string `json:"district" validate:"required"`
-	City       string `json:"city" validate:"required"`
-	Province   string `json:"province" validate:"required"`
-	PostalCode int    `json:"postal_code" validate:"required,number"`
+	UserId     uuid.UUID `json:"user_id" validate:"required,number"`
+	Phone      string    `json:"phone" validate:"required"`
+	Address    string    `json:"address" validate:"required"`
+	District   string    `json:"district" validate:"required"`
+	City       string    `json:"city" validate:"required"`
+	Province   string    `json:"province" validate:"required"`
+	PostalCode int       `json:"postal_code" validate:"required,number"`
 	// payment request
 	PaymentType string `json:"payment_type" validate:"required"`
 	TokenID     string `json:"token_id"`

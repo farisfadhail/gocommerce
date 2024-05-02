@@ -1,10 +1,13 @@
 package entity
 
-import "time"
+import (
+	"github.com/google/uuid"
+	"time"
+)
 
 type UserOrder struct {
-	ID         uint      `json:"id" gorm:"primaryKey"`
-	UserId     uint      `json:"user_id" gorm:"column:user_id"`
+	ID         uuid.UUID `json:"id" gorm:"primaryKey"`
+	UserId     uuid.UUID `json:"user_id" gorm:"column:user_id"`
 	Phone      string    `json:"phone" gorm:"column:phone"`
 	Address    string    `json:"address" gorm:"column:address"`
 	District   string    `json:"district" gorm:"column:district"`

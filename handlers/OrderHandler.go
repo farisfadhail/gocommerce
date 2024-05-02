@@ -84,6 +84,7 @@ func CheckoutImmediatelyOrderHandler(ctx *fiber.Ctx) error {
 	responseData := make(map[string]interface{})
 
 	newUserOrder := entity.UserOrder{
+		ID:         uuid.New(),
 		UserId:     orderRequest.UserId,
 		Phone:      orderRequest.Phone,
 		Address:    orderRequest.Address,
@@ -251,6 +252,7 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 	var items []midtrans.ItemDetails
 
 	newUserOrder := entity.UserOrder{
+		ID:         uuid.New(),
 		UserId:     orderRequest.UserId,
 		Phone:      orderRequest.Phone,
 		Address:    orderRequest.Address,
