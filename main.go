@@ -9,9 +9,15 @@ import (
 )
 
 func main() {
-	//Database Init
+	// Database Init
 	database.DatabaseInit()
 	migrations.RunMigration()
+	//migrations.RunMigrationDrop()
+
+	// ElasticSearch Init
+	database.ElasticsearchInit()
+	migrations.RunIndexES()
+	//migrations.RunDeleteIndexES()
 
 	app := fiber.New()
 

@@ -1,6 +1,8 @@
 package database
 
 import (
+	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -33,4 +35,22 @@ func DatabaseInit() *gorm.DB {
 	}
 
 	return db
+}
+
+func ElasticsearchInit() *elasticsearch.Client {
+	configES := elasticsearch.Config{
+		Addresses: []string{
+			"http://localhost:9200",
+		},
+	}
+
+	client, err := elasticsearch.NewClient(configES)
+
+	if err != nil {
+		panic(err)
+	}
+
+	log.Info("Elasticsearch connected")
+
+	return client
 }
