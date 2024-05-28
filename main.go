@@ -11,13 +11,13 @@ import (
 func main() {
 	// Database Init
 	database.DatabaseInit()
-	migrations.RunMigration()
 	//migrations.RunMigrationDrop()
+	migrations.RunMigration()
 
 	// ElasticSearch Init
 	database.ElasticsearchInit()
-	migrations.RunIndexES()
 	//migrations.RunDeleteIndexES()
+	migrations.RunIndexES()
 
 	app := fiber.New()
 

@@ -51,6 +51,9 @@ func RouteInit(app *fiber.App) {
 	product.Post("/", utils.HandleMultipleFile, handlers.StoreProductHandler).Name("product.store")
 	product.Get("/:productSlug", handlers.GetBySlugProductHandler).Name("product.show")
 
+	// Product Elasticsearch API
+	product.Post("/search", handlers.SearchProductHandler).Name("product.search")
+
 	// Product API (Admin)
 	productAdmin := product.Group("/admin", middleware.Authenticated, middleware.IsAdmin)
 	productAdmin.Put("/:productId", utils.HandleMultipleFile, handlers.UpdateProductHandler).Name("product.update")

@@ -15,3 +15,7 @@ type ProductUpdateRequest struct {
 	Description string `json:"description"`
 	Quantity    uint64 `json:"quantity" validate:"number"`
 }
+
+type SearchProductRequest struct {
+	Keyword string `json:"keyword" validate:"required"`
+}

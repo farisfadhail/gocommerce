@@ -1,13 +1,19 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gosimple/slug"
+	"gocommerce/database"
 	"gocommerce/models/entity"
 	"gocommerce/models/request"
 	"gocommerce/utils"
 	"log"
+	"strings"
 )
+
+var client = database.ElasticsearchInit()
 
 func GetAllProductsHandler(ctx *fiber.Ctx) error {
 	var products []entity.Product
@@ -111,6 +117,14 @@ func StoreProductHandler(ctx *fiber.Ctx) error {
 	}
 
 	responseData["image_gallery"] = imageGallery
+
+	data, _ := json.Marshal(responseData)
+
+	_, err = client.Index("gocommerce-products", bytes.NewReader(data))
+
+	if err != nil {
+		log.Println("Failed to store data in Elasticsearch. Error : ", err.Error())
+	}
 
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "New entry has been added to the database.",
@@ -305,5 +319,63 @@ func DeleteProductHandler(ctx *fiber.Ctx) error {
 
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Entry has been removed from the database.",
+	})
+}
+
+func SearchProductHandler(ctx *fiber.Ctx) error {
+	searchRequest := new(request.SearchProductRequest)
+	err := ctx.BodyParser(searchRequest)
+
+	if err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Request is empty.",
+		})
+	}
+
+	query := `{ "query": { "match": { "product.name" : "` + searchRequest.Keyword + `" } } }`
+	search, err := client.Search(
+		client.Search.WithIndex("my_index"),
+		client.Search.WithBody(strings.NewReader(query)),
+	)
+
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to search data.",
+		})
+	}
+
+	defer search.Body.Close()
+
+	if search.IsError() {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to search data.",
+		})
+	}
+
+	var responses map[string]interface{}
+
+	err = json.NewDecoder(search.Body).Decode(&responses)
+
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to decode data.",
+		})
+	}
+
+	if responses["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64) == 0 {
+		return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+			"message": "Data not found.",
+		})
+	}
+
+	var products map[string]interface{}
+
+	for _, val := range responses["hits"].(map[string]interface{})["hits"].([]interface{}) {
+		products[val.(map[string]interface{})["_id"].(string)] = val.(map[string]interface{})["_source"]
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Data has been retrieved successfully.",
+		"data":    products,
 	})
 }
