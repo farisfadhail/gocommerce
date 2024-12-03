@@ -9,8 +9,11 @@ import (
 	"gocommerce/models/request"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
+
+var mu sync.Mutex
 
 func GetAllOrderHandler(ctx *fiber.Ctx) error {
 	var orders []entity.Order
@@ -57,19 +60,23 @@ func CheckoutImmediatelyOrderHandler(ctx *fiber.Ctx) error {
 
 	var product entity.Product
 
+	mu.Lock()
 	result := db.First(&product, orderRequest.ProductId)
 
 	if result.Error != nil {
+		mu.Unlock()
 		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"message": "Data product not found.",
 		})
 	}
 
 	if uint64(orderRequest.Quantity) > product.Quantity {
+		mu.Unlock()
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": "Insufficient quantity for product.",
 		})
 	}
+	mu.Unlock()
 
 	var user entity.User
 
@@ -173,8 +180,10 @@ func CheckoutImmediatelyOrderHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
+	mu.Lock()
 	product.Quantity = product.Quantity - uint64(orderRequest.Quantity)
 	result = db.Debug().Save(&product)
+	mu.Unlock()
 
 	if result.Error != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -234,6 +243,7 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
+	mu.Lock()
 	// Check if product quantity is enough
 	for _, cartDetail := range cart {
 		var product entity.Product
@@ -241,11 +251,13 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 		db.First(&product, cartDetail.ProductId)
 
 		if product.Quantity < uint64(cartDetail.Quantity) {
+			mu.Unlock()
 			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"message": "Insufficient quantity for product.",
 			})
 		}
 	}
+	mu.Unlock()
 
 	var Amount int64
 
@@ -264,6 +276,7 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 
 	var orderIDS []string
 
+	mu.Lock()
 	for _, cartDetail := range cart {
 		var product entity.Product
 
@@ -282,6 +295,7 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 		result := db.Debug().Create(&newOrder)
 
 		if result.Error != nil {
+			mu.Unlock()
 			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"message": "Failed to create order data.",
 			})
@@ -299,6 +313,7 @@ func CheckoutByCartOrderHandler(ctx *fiber.Ctx) error {
 		product.Quantity = product.Quantity - uint64(cartDetail.Quantity)
 		db.Save(&product)
 	}
+	mu.Unlock()
 
 	result = db.Debug().Create(&newUserOrder)
 
