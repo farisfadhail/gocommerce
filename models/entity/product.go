@@ -3,7 +3,7 @@ package entity
 import "time"
 
 type Product struct {
-	ID             uint           `json:"id" gorm:"column:id;primaryKey"`
+	ID             uint64         `json:"id" gorm:"column:id;primaryKey"`
 	CategoryId     uint           `json:"category_id" gorm:"column:category_id"`
 	Name           string         `json:"name" gorm:"column:name"`
 	Slug           string         `json:"slug" gorm:"column:slug;uniqueIndex"`

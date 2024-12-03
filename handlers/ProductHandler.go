@@ -10,6 +10,7 @@ import (
 	"gocommerce/models/request"
 	"gocommerce/utils"
 	"log"
+	"strconv"
 	"strings"
 )
 
@@ -69,13 +70,25 @@ func StoreProductHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
+	var product entity.Product
+
+	slugProduct := slug.Make(productRequest.Name)
+
+	checkSlug := db.Where("slug = ?", slugProduct).First(&product)
+
+	if checkSlug.RowsAffected > 0 {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Name already exists. Please use another name.",
+		})
+	}
+
 	//var responseData []interface{}
 	responseData := make(map[string]interface{})
 
 	newProduct := entity.Product{
 		CategoryId:  productRequest.CategoryId,
 		Name:        productRequest.Name,
-		Slug:        slug.Make(productRequest.Name),
+		Slug:        slugProduct,
 		Price:       int64(productRequest.Price),
 		Description: productRequest.Description,
 		Quantity:    uint64(productRequest.Quantity),
@@ -120,11 +133,13 @@ func StoreProductHandler(ctx *fiber.Ctx) error {
 
 	data, _ := json.Marshal(responseData)
 
-	_, err = client.Index("gocommerce-products", bytes.NewReader(data))
+	_, err = client.Index("gocommerce-products", bytes.NewReader(data), client.Index.WithDocumentID(slugProduct))
 
 	if err != nil {
 		log.Println("Failed to store data in Elasticsearch. Error : ", err.Error())
 	}
+
+	log.Println("Elasticsearch data has been stored successfully.")
 
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "New entry has been added to the database.",
@@ -189,6 +204,18 @@ func UpdateProductHandler(ctx *fiber.Ctx) error {
 
 	var product entity.Product
 
+	slugProduct := slug.Make(productRequest.Name)
+
+	checkSlug := db.Where("slug = ?", slugProduct).First(&product)
+
+	parseUint, _ := strconv.ParseUint(productId, 10, 64)
+
+	if checkSlug.RowsAffected > 0 && product.ID != parseUint {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Name already exists. Please use another name.",
+		})
+	}
+
 	result := db.First(&product, productId)
 
 	if result.Error != nil {
@@ -199,7 +226,7 @@ func UpdateProductHandler(ctx *fiber.Ctx) error {
 
 	product.CategoryId = productRequest.CategoryId
 	product.Name = productRequest.Name
-	product.Slug = slug.Make(productRequest.Name)
+	product.Slug = slugProduct
 	product.Price = int64(productRequest.Price)
 	product.Description = productRequest.Description
 	product.Quantity = uint64(productRequest.Quantity)
@@ -264,6 +291,16 @@ func UpdateProductHandler(ctx *fiber.Ctx) error {
 
 	responseData["image_gallery"] = imageGallery
 
+	data, _ := json.Marshal(responseData)
+
+	_, err = client.Index("gocommerce-products", bytes.NewReader(data), client.Index.WithDocumentID(slugProduct))
+
+	if err != nil {
+		log.Println("Failed to update data in Elasticsearch. Error : ", err.Error())
+	}
+
+	log.Println("Elasticsearch data has been updated successfully.")
+
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Changes have been saved.",
 		"data":    responseData,
@@ -317,6 +354,14 @@ func DeleteProductHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
+	_, err := client.Delete("gocommerce-products", productId)
+
+	if err != nil {
+		log.Println("Failed to delete data in Elasticsearch. Error : ", err.Error())
+	}
+
+	log.Println("Elasticsearch data has been deleted successfully.")
+
 	return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Entry has been removed from the database.",
 	})
@@ -334,13 +379,13 @@ func SearchProductHandler(ctx *fiber.Ctx) error {
 
 	query := `{ "query": { "match": { "product.name" : "` + searchRequest.Keyword + `" } } }`
 	search, err := client.Search(
-		client.Search.WithIndex("my_index"),
+		client.Search.WithIndex("gocommerce-products"),
 		client.Search.WithBody(strings.NewReader(query)),
 	)
 
 	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Failed to search data.",
+			"message": "Failed to search data. err : " + err.Error(),
 		})
 	}
 
@@ -348,7 +393,7 @@ func SearchProductHandler(ctx *fiber.Ctx) error {
 
 	if search.IsError() {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Failed to search data.",
+			"message": "Failed to search data. err : " + err.Error(),
 		})
 	}
 
