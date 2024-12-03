@@ -1,15 +1,22 @@
 package routes
 
 import (
-	"github.com/gofiber/fiber/v2"
+	"github.com/go-playground/validator/v10"
 	"gocommerce/config"
+	"gocommerce/database"
 	"gocommerce/handlers"
 	"gocommerce/middleware"
+	"gocommerce/repository"
 	"gocommerce/utils"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 func RouteInit(app *fiber.App) {
 	app.Static("/public", config.ProjectRootPath+"/public/asset")
+
+	db := database.DatabaseInit()
+	validate := validator.New()
 
 	api := app.Group("/api")
 
@@ -35,15 +42,17 @@ func RouteInit(app *fiber.App) {
 	userAdmin.Delete("/:userId", handlers.DeleteUserHandler, middleware.IsAdmin).Name("user.destroy")
 
 	// Category API
+	categoryRepo := repository.NewCategoryRepository(db)
+	categoryHandler := handlers.NewCategoryHandler(categoryRepo, validate)
 	category := api.Group("/category")
-	category.Get("/", handlers.GetAllCategoriesHandler).Name("category.index")
-	category.Get("/:categorySlug", handlers.GetBySlugCategoryHandler).Name("category.show")
+	category.Get("/", categoryHandler.GetAllCategoriesHandler).Name("category.index")
+	category.Get("/:categorySlug", categoryHandler.GetBySlugCategoryHandler).Name("category.show")
 
 	// Category API (Admin)
 	categoryAdmin := category.Group("/admin", middleware.Authenticated, middleware.IsAdmin)
-	categoryAdmin.Post("/", handlers.StoreCategoryHandler).Name("category.store")
-	categoryAdmin.Put("/:categoryId", handlers.UpdateCategoryHandler).Name("category.update")
-	categoryAdmin.Delete("/:categoryId", handlers.DeleteCategoryHandler).Name("category.destroy")
+	categoryAdmin.Post("/", categoryHandler.StoreCategoryHandler).Name("category.store")
+	categoryAdmin.Put("/:categoryId", categoryHandler.UpdateCategoryHandler).Name("category.update")
+	categoryAdmin.Delete("/:categoryId", categoryHandler.DeleteCategoryHandler).Name("category.destroy")
 
 	// Product API
 	product := api.Group("/product")

@@ -1,20 +1,30 @@
 package handlers
 
 import (
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gosimple/slug"
-	"gocommerce/models/entity"
 	"gocommerce/models/request"
+	"gocommerce/repository"
 )
 
-func GetAllCategoriesHandler(ctx *fiber.Ctx) error {
-	var categories []entity.Category
+type CategoryHandler struct {
+	Repository repository.CategoryRepository
+	Validate   *validator.Validate
+}
 
-	result := db.Debug().Find(&categories)
+func NewCategoryHandler(repo repository.CategoryRepository, validate *validator.Validate) *CategoryHandler {
+	return &CategoryHandler{
+		Repository: repo,
+		Validate:   validate,
+	}
+}
 
-	if result.Error != nil {
+func (c *CategoryHandler) GetAllCategoriesHandler(ctx *fiber.Ctx) error {
+	categories, err := c.Repository.GetAll()
+	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Failed to get all data.",
+			"message": "Failed to retrieve category data.",
+			"error":   err.Error(),
 		})
 	}
 
@@ -30,36 +40,32 @@ func GetAllCategoriesHandler(ctx *fiber.Ctx) error {
 	})
 }
 
-func StoreCategoryHandler(ctx *fiber.Ctx) error {
+func (c *CategoryHandler) StoreCategoryHandler(ctx *fiber.Ctx) error {
 	categoryRequest := new(request.CategoryRequest)
-	err := ctx.BodyParser(categoryRequest)
 
-	if err != nil {
+	if err := ctx.BodyParser(categoryRequest); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": "Bad request.",
 			"error":   err.Error(),
 		})
 	}
 
-	err = validate.Struct(categoryRequest)
-
-	if err != nil {
+	if err := c.Validate.Struct(categoryRequest); err != nil {
+		if validationError, ok := err.(*validator.InvalidValidationError); ok {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "Invalid validation error.",
+				"error":   FormatValidationError(validationError),
+			})
+		}
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Bad request.",
-			"error":   err.Error(),
+			"error": "Unexpected validation error",
 		})
 	}
 
-	newCategory := entity.Category{
-		Name: categoryRequest.Name,
-		Slug: slug.Make(categoryRequest.Name),
-	}
-
-	result := db.Debug().Create(&newCategory)
-
-	if result.Error != nil {
+	newCategory, err := c.Repository.Create(*categoryRequest)
+	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Failed to store category data",
+			"message": "Failed to store category data.",
 			"error":   err.Error(),
 		})
 	}
@@ -70,16 +76,13 @@ func StoreCategoryHandler(ctx *fiber.Ctx) error {
 	})
 }
 
-func GetBySlugCategoryHandler(ctx *fiber.Ctx) error {
+func (c *CategoryHandler) GetBySlugCategoryHandler(ctx *fiber.Ctx) error {
 	categorySlug := ctx.Params("categorySlug")
 
-	var category entity.Category
-
-	result := db.Debug().First(&category, "slug = ?", categorySlug)
-
-	if result.Error != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"message": "Data not found.",
+	category, err := c.Repository.GetBySlug(categorySlug)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to retrieve category data.",
 		})
 	}
 
@@ -89,45 +92,34 @@ func GetBySlugCategoryHandler(ctx *fiber.Ctx) error {
 	})
 }
 
-func UpdateCategoryHandler(ctx *fiber.Ctx) error {
+func (c *CategoryHandler) UpdateCategoryHandler(ctx *fiber.Ctx) error {
 	categoryRequest := new(request.CategoryUpdateRequest)
-	err := ctx.BodyParser(categoryRequest)
 
-	if err != nil {
+	if err := ctx.BodyParser(categoryRequest); err != nil {
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"message": "Request is empty.",
 		})
 	}
 
-	err = validate.Struct(categoryRequest)
-
-	if err != nil {
+	if err := c.Validate.Struct(categoryRequest); err != nil {
+		if validationError, ok := err.(*validator.InvalidValidationError); ok {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"message": "Invalid validation error.",
+				"error":   FormatValidationError(validationError),
+			})
+		}
 		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"message": "Bad request.",
-			"error":   err.Error(),
+			"error": "Unexpected validation error",
 		})
 	}
 
-	categoryId := ctx.Params("categoryId")
+	id := ctx.Params("categoryId")
 
-	var category entity.Category
-
-	result := db.First(&category, categoryId)
-
-	if result.Error != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"message": "Data not found.",
-		})
-	}
-
-	category.Name = categoryRequest.Name
-	category.Slug = slug.Make(categoryRequest.Name)
-
-	result = db.Debug().Save(&category)
-
-	if result.Error != nil {
+	category, err := c.Repository.Update(*categoryRequest, id)
+	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"message": "Failed to update category data.",
+			"error":   err.Error(),
 		})
 	}
 
@@ -137,24 +129,14 @@ func UpdateCategoryHandler(ctx *fiber.Ctx) error {
 	})
 }
 
-func DeleteCategoryHandler(ctx *fiber.Ctx) error {
+func (c *CategoryHandler) DeleteCategoryHandler(ctx *fiber.Ctx) error {
 	categoryId := ctx.Params("categoryId")
 
-	var category entity.Category
-
-	result := db.First(&category, categoryId)
-
-	if result.Error != nil {
-		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"message": "Data not found.",
-		})
-	}
-
-	result = db.Debug().Delete(&category, categoryId)
-
-	if result.Error != nil {
+	err := c.Repository.Delete(categoryId)
+	if err != nil {
 		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": "Failed to delete data.",
+			"message": "Failed to delete category data.",
+			"error":   err.Error(),
 		})
 	}
 
