@@ -1,12 +1,12 @@
 package entity
 
 import (
-	"github.com/google/uuid"
 	"time"
 )
 
 type User struct {
-	ID        uuid.UUID   `json:"id" gorm:"primaryKey"`
+	// ID        uuid.UUID   `json:"id" gorm:"primaryKey"`
+	ID        uint64      `json:"id" gorm:"primaryKey"`
 	FullName  string      `json:"full_name" gorm:"size:255;column:full_name"`
 	Username  string      `json:"username" gorm:"size:100;column:username;uniqueIndex"`
 	Email     string      `json:"email" gorm:"size:255;column:email"`

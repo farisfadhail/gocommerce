@@ -21,6 +21,20 @@ func Authenticated(ctx *fiber.Ctx) error {
 		})
 	}
 
+	claims, err := utils.DecodeToken(token)
+
+	if err != nil {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Unauthenticated.",
+		})
+	}
+
+	if claims["exp"].(int64) >= utils.GetTimeNow() {
+		return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"message": "Token has expired.",
+		})
+	}
+
 	return ctx.Next()
 }
 

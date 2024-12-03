@@ -50,3 +50,7 @@ func DecodeToken(tokenString string) (jwt.MapClaims, error) {
 
 	return nil, fmt.Errorf("INVALID TOKEN")
 }
+
+func GetTimeNow() int64 {
+	return jwt.TimeFunc().Unix()
+}

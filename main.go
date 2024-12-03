@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"gocommerce/database"
 	"gocommerce/database/migrations"
 	"gocommerce/routes"
 	"log"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 func main() {
@@ -17,7 +18,7 @@ func main() {
 	// ElasticSearch Init
 	database.ElasticsearchInit()
 	//migrations.RunDeleteIndexES()
-	migrations.RunIndexES()
+	//migrations.RunIndexES()
 
 	app := fiber.New()
 

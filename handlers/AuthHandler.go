@@ -1,15 +1,15 @@
 package handlers
 
 import (
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"gocommerce/models/entity"
 	"gocommerce/models/request"
 	"gocommerce/utils"
 	"log"
 	"strings"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	"github.com/gofiber/fiber/v2"
 )
 
 func RegisterHandler(ctx *fiber.Ctx) error {
@@ -33,7 +33,7 @@ func RegisterHandler(ctx *fiber.Ctx) error {
 	}
 
 	newUser := entity.User{
-		ID:       uuid.New(),
+		// ID:       uuid.New(),
 		FullName: user.FullName,
 		Username: strings.ToLower(user.Username),
 		Email:    user.Email,
