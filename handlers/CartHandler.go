@@ -59,6 +59,7 @@ func StoreCartHandler(ctx *fiber.Ctx) error {
 
 	var product entity.Product
 
+	mu.Lock()
 	result = db.First(&product, cartRequest.ProductId)
 
 	if result.Error != nil {
@@ -72,12 +73,25 @@ func StoreCartHandler(ctx *fiber.Ctx) error {
 			"message": "Insufficient quantity for product.",
 		})
 	}
+	mu.Unlock()
 
 	var cart entity.Cart
 
 	result = db.First(&cart, "product_id = ? AND user_id = ?", cartRequest.ProductId, cartRequest.UserId)
 
 	if result.Error != nil {
+		mu.Lock()
+		product.Quantity -= uint64(cartRequest.Quantity)
+
+		result = db.Debug().Save(&product)
+
+		if result.Error != nil {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Failed to update product data.",
+			})
+		}
+		mu.Unlock()
+
 		newCart := entity.Cart{
 			UserId:    cartRequest.UserId,
 			ProductId: cartRequest.ProductId,
@@ -97,6 +111,18 @@ func StoreCartHandler(ctx *fiber.Ctx) error {
 			"data":    newCart,
 		})
 	}
+
+	mu.Lock()
+	product.Quantity -= uint64(cartRequest.Quantity)
+
+	result = db.Debug().Save(&product)
+
+	if result.Error != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to update product data.",
+		})
+	}
+	mu.Unlock()
 
 	cart.Quantity += cartRequest.Quantity
 
@@ -218,6 +244,34 @@ func UpdateQuantityCartHandler(ctx *fiber.Ctx) error {
 		})
 	}
 
+	var product entity.Product
+
+	mu.Lock()
+	result = db.First(&product, cart.ProductId)
+
+	if result.Error != nil {
+		return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"message": "Product not found.",
+		})
+	}
+
+	if uint64(cartRequest.Quantity) > product.Quantity {
+		return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"message": "Insufficient quantity for product.",
+		})
+	}
+
+	product.Quantity -= uint64(cartRequest.Quantity)
+
+	result = db.Debug().Save(&product)
+
+	if result.Error != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"message": "Failed to update product data.",
+		})
+	}
+	mu.Unlock()
+
 	cart.Quantity = cartRequest.Quantity
 
 	result = db.Debug().Save(&cart)
@@ -266,7 +320,29 @@ func DeleteCartHandler(ctx *fiber.Ctx) error {
 	}
 
 	for _, cartId := range cartRequest.CartId {
-		result := db.Debug().Delete(&cart, cartId)
+		var product entity.Product
+
+		mu.Lock()
+		result := db.First(&product, cart.ProductId)
+
+		if result.Error != nil {
+			return ctx.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"message": "Product not found.",
+			})
+		}
+
+		product.Quantity += uint64(cart.Quantity)
+
+		result = db.Debug().Save(&product)
+
+		if result.Error != nil {
+			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"message": "Failed to update product data.",
+			})
+		}
+		mu.Unlock()
+
+		result = db.Debug().Delete(&cart, cartId)
 
 		if result.Error != nil {
 			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
